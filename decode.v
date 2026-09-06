@@ -1,6 +1,34 @@
 module vjsonrpc
 
 import json2
+import math
+
+// strip_ansi removes the ANSI color escape sequences json2 bakes into its
+// decode error context (unconditionally, even when not writing to a tty),
+// so a caller relaying err.msg() inside a Response data field does not
+// ship terminal control codes on the wire.
+fn strip_ansi(s string) string {
+	if !s.contains('\x1b') {
+		return s
+	}
+	b := s.bytes()
+	mut out := []u8{}
+	mut i := 0
+	for i < b.len {
+		if b[i] == 27 && i + 1 < b.len && b[i + 1] == `[` { // ESC [
+			// CSI sequence: ESC [ params <final byte 0x40-0x7e>
+			i += 2
+			for i < b.len && !(b[i] >= 0x40 && b[i] <= 0x7e) {
+				i++
+			}
+			i++
+			continue
+		}
+		out << b[i]
+		i++
+	}
+	return out.bytestr()
+}
 
 // is_valid_id reports whether v is a legal JSON-RPC id: a string, a number,
 // or null. json2 decodes every bare JSON number as f64, integer-looking or
@@ -99,6 +127,10 @@ pub fn response_from_value(v json2.Any) !Response {
 		if codev !is f64 {
 			return error('"error.code" must be a number')
 		}
+		code := codev.f64()
+		if code != math.trunc(code) {
+			return error('"error.code" must be an integer')
+		}
 		if msgv !is string {
 			return error('"error.message" must be a string')
 		}
@@ -106,7 +138,7 @@ pub fn response_from_value(v json2.Any) !Response {
 		return Response{
 			id: id
 			error: RpcError{
-				code: int(codev.f64())
+				code: int(code)
 				message: msgv.str()
 				data: data
 			}
@@ -122,13 +154,13 @@ pub fn response_from_value(v json2.Any) !Response {
 
 // decode_request parses and validates a single request or notification.
 pub fn decode_request(raw string) !Request {
-	val := json2.decode[json2.Any](raw)!
+	val := json2.decode[json2.Any](raw) or { return error(strip_ansi(err.msg())) }
 	return request_from_value(val)
 }
 
 // decode_response parses and validates a single response.
 pub fn decode_response(raw string) !Response {
-	val := json2.decode[json2.Any](raw)!
+	val := json2.decode[json2.Any](raw) or { return error(strip_ansi(err.msg())) }
 	return response_from_value(val)
 }
 
@@ -147,7 +179,7 @@ pub:
 // individual malformed element does not fail the whole batch; it comes
 // back as a BatchItem with err set, per the spec's per-element tolerance.
 pub fn decode_request_batch(raw string) ![]BatchItem {
-	val := json2.decode[json2.Any](raw)!
+	val := json2.decode[json2.Any](raw) or { return error(strip_ansi(err.msg())) }
 	if val !is []json2.Any {
 		return error('expected a JSON array for a batch')
 	}
