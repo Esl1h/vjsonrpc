@@ -11,7 +11,7 @@ itself made (vlang/v#25706, closed without an implementation) and is meant
 to become the wire-protocol layer under a future MCP server SDK, but it has
 no MCP-specific code and no dependency on anything beyond `json2`.
 
-## V is under-represented in your training data — verify, never guess
+## V is under-represented in your training data, verify, never guess
 
 Same standing rule as every other V project here (`redact` included).
 Compile after every meaningful change: `v test .` or `v run examples/cli`.
@@ -21,7 +21,7 @@ Check actual stdlib source before assuming a signature:
 grep -n "pub fn" ~/GIT/v/vlib/json2/*.v
 ```
 
-## Gotchas already found in this codebase — do not rediscover them
+## Gotchas already found in this codebase, do not rediscover them
 
 - `json2.Any` is a sum type. Its declared variant order puts `[]Any` first,
   so the *zero value* of a missing map key, if you skip `or {}`, is an
@@ -36,7 +36,7 @@ grep -n "pub fn" ~/GIT/v/vlib/json2/*.v
   `[]Any` zero value above. Don't conflate the two.
 - `map[string]Any` has `.str()` directly (it serializes to JSON text); no
   need to wrap it as `json2.Any(m)` first.
-- `v vet` requires a function's doc comment to start with `// fn_name ` —
+- `v vet` requires a function's doc comment to start with `// fn_name ` ,
   the function name followed by a space. `// fn_name: does X` (with a
   colon) reads as "incomplete" and still warns. A multi-line comment only
   needs its *first* line to match; vet walks upward through contiguous `//`
