@@ -78,7 +78,7 @@ make fmt
 
 ## Scope
 
-Message layer only: this module has no opinion on how bytes reach it (stdio, a socket, HTTP) and no method dispatch table. It decodes JSON-RPC ids as `f64` for numbers per how the underlying JSON decoder works, and re-encodes whole numbers without a trailing `.0`, so numeric ids round-trip correctly. Only string, number, and `null` ids are accepted, matching the spec; an object, array, or boolean id is rejected before it reaches the caller.
+Message layer only: this module has no opinion on how bytes reach it (stdio, a socket, HTTP) and no method dispatch table. It decodes JSON-RPC ids as `f64` for numbers per how the underlying JSON decoder works, and re-encodes whole numbers without a trailing `.0`, so numeric ids round-trip correctly within the 53-bit precision of `f64`; ids beyond 2^53 lose precision and come back in scientific notation. Only string, number, and `null` ids are accepted, matching the spec; an object, array, or boolean id is rejected before it reaches the caller.
 
 ## License
 
