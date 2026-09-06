@@ -104,6 +104,35 @@ fn test_decode_response_rejects_neither_result_nor_error() {
 	}
 }
 
+fn test_decode_response_rejects_fractional_error_code() {
+	raw := '{"jsonrpc":"2.0","id":1,"error":{"code":1.5,"message":"x"}}'
+	if _ := decode_response(raw) {
+		assert false, 'expected an error'
+	}
+}
+
+fn test_decode_errors_carry_no_ansi_escapes() {
+	// json2 decorates its decode error context with ANSI color codes even
+	// when piped; the decode_* functions must strip them so err.msg() is
+	// safe to relay inside a Response data field.
+	if _ := decode_request('not json') {
+		assert false, 'expected a parse error'
+	} else {
+		assert !err.msg().contains('\x1b'), err.msg()
+		assert err.msg().contains('Invalid json'), err.msg()
+	}
+	if _ := decode_response('not json') {
+		assert false, 'expected a parse error'
+	} else {
+		assert !err.msg().contains('\x1b'), err.msg()
+	}
+	if _ := decode_request_batch('not json') {
+		assert false, 'expected a parse error'
+	} else {
+		assert !err.msg().contains('\x1b'), err.msg()
+	}
+}
+
 fn test_decode_request_batch_mixed_validity() {
 	raw := '[{"jsonrpc":"2.0","method":"a","id":1},{"jsonrpc":"2.0","id":2},{"jsonrpc":"2.0","method":"b"}]'
 	items := decode_request_batch(raw) or {
