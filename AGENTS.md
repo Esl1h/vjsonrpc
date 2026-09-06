@@ -44,6 +44,16 @@ grep -n "pub fn" ~/GIT/v/vlib/json2/*.v
 - `?T` struct fields (e.g. `error ?RpcError` on `Response`) unwrap with the
   same `if v := field { ... } else { ... }` pattern used for map/array
   access.
+- json2 keeps the *last* occurrence of duplicate JSON keys, so
+  `{"jsonrpc":"1.0","jsonrpc":"2.0",...}` validates against "2.0".
+  Standard lenient parsing, left as is.
+- json2 bakes ANSI color escapes (`\e[31m`) into its decode error
+  messages unconditionally, even when piped. `decode_request`,
+  `decode_response` and `decode_request_batch` strip them (`strip_ansi`)
+  so `err.msg()` stays safe to relay inside a Response data field.
+- `v fmt` does not recognize `\e` as an escape: it rewrites `'\e'` to
+  `'\\e'`, silently changing the byte it matches. Use `'\x1b'` (or the
+  integer `27`) for ESC instead.
 
 ## Design decisions worth knowing before changing scope
 
@@ -64,6 +74,12 @@ grep -n "pub fn" ~/GIT/v/vlib/json2/*.v
 - No batch support for responses. Batching responses is a client-side
   concern this module hasn't needed yet; add it the same way as the
   request batch if a caller needs it, don't guess ahead of that need.
+- Validation does not police the spec's producer-side rules: reserved
+  `rpc.`-prefixed method names and empty method strings pass, because the
+  spec's MUST NOT binds whoever composes the message, and a validator
+  rejecting them would break legitimate rpc-internal extensions.
+  Fractional `error.code` values ARE rejected though: an error object is
+  received data, and the spec requires its code to be an integer.
 
 ## Build and test
 
