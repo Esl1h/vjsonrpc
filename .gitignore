@@ -1,0 +1,7 @@
+*_test
+*.o
+*.tmp.c
+.*.v3cc.*/
+*.log
+
+examples/cli/vjsonrpc-cli
